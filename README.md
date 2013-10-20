@@ -47,11 +47,9 @@ a line and a plane.
 
 You can pretty-print with `mathy` as in `(mathy [1 2 3]) => "(1,2,3)"`.
 
-As the REPL is just a standard Clojure REPL you can do things like saving an element for reuse: `(def l (line "(0,0,0)" "(1,2,3)"))`. Now `l` is a line that goes throug (0,0,0) and has the direction (1,2,3).
+As the REPL is just a standard Clojure REPL you can do things like saving an element for reuse: `(def l (line "(0,0,0)" "(1,2,3)"))`. Now `l` is a line that goes through (0,0,0) and has the direction (1,2,3).
 Then one can do: `(distance l "3 -1 2")` and so on.
 You can also do further calculations on the returned result: `(angle "1 2 3" (intersection "2x-3y-1z+4=0" "4 4 1 2"))`.
-
-When running `lein run` or runnning the uberjar
 
 ## Thanks
 Thanks to [Instaparse](https://github.com/Engelberg/instaparse) and [Expresso](https://github.com/clojure-numerics/expresso) for making it easy to parse user-input and solve equations respectively. And for extensive documentation!
