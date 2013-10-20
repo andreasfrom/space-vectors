@@ -1,0 +1,139 @@
+(ns clj-space-vectors.core
+  (:require [instaparse.core :as insta]))
+
+(def transform-options
+  {:number (fn [& ns] (read-string (apply str ns)))
+   :vector (fn [& es] (apply vector es))
+   :op (fn [v] {:op v})
+   :r (fn [v] {:r v})
+   :t (fn [p] {:t p})
+   :line (fn [& body] (apply merge body))
+   :plane (fn [a b c d] {:n [a b c] :d d})
+   :S identity})
+
+(def parser
+  (insta/parser
+   "S = vector | line | plane
+    plane = number [space* [<mult>] space* <'x'>] [space]
+            number [space* [<mult>] space* <'y'>] [space]
+            number [space* [<mult>] space* <'z'>] [space]
+            number [space* <'='> space* <'0'>]
+    line = op space* [<plus>] space* [t] space* [<mult>] r
+    op = vector
+    t = #'[a-z]'+
+    r = vector
+    <plus> = '+'
+    <mult> = '*'
+    vector = space* [lparen] space* number space number space number space* [rparen] space*
+    <lparen> = <'('> | <'<'> | <'['>
+    <rparen> = <')'> | <'>'> | <']'>
+    number = ('+' | '-' | '') #'[0-9]+' ['.'] #'[0-9]+'*
+    <space> = <#'[ ]+'> | <','>"))
+
+(defn parse
+  [input]
+  (->> (parser input)
+       (insta/transform transform-options)))
+
+(defn vector-between
+  "Vector from point `a` to `b`."
+  [a b]
+  (mapv - b a))
+
+(defn vlen
+  "Length of a vector."
+  [v]
+  (->> v
+      (map #(Math/pow % 2))
+      (reduce +)
+      Math/sqrt))
+
+(defn normalize
+  [v]
+  (mapv #(/ % (vlen v)) v))
+
+(defn dotp
+  "Dotproduct of two vectors."
+  [v w]
+  (reduce + (map * v w)))
+
+(defn cross
+  "Crossproduct of two vectors."
+  [[ax ay az] [bx by bz]]
+  [(- (* ay bz) (* az by))
+   (- (* az bx) (* ax bz))
+   (- (* ax by) (* ay bx))])
+
+(defn area
+  [a b]
+  (vlen (cross a b)))
+
+(defn angle
+  [a b]
+  (Math/toDegrees
+    (Math/acos (/ (dotp a b)
+                  (* (vlen a) (vlen b))))))
+
+(defn with-param
+  [t {:keys [op r]}]
+  (map + op (map (partial * t) r)))
+
+(defn point-on-line?
+  [[qx _ :as q] {[x _ :as op] :op, [rx _ :as r] :r :as l}]
+  (let [t (/ (- qx x) rx)]
+    (= q (with-param t l))))
+
+(defn point-line-dist
+  [p {:keys [r op]}]
+  (/ (vlen (cross r (map - p op)))
+     (vlen r)))
+
+(defn determinant
+  "[a1 b1 c1] [a2 b2 c2] in
+   a1*x, + b1*y = c1 AND a2*x + b2*y = c2
+   Returns [x y]"
+  [[a1 b1 c1] [a2 b2 c2]]
+  [(/ (- (* c1 b2) (* c2 b1))
+      (- (* a1 b2) (* a2 b1)))
+   (/ (- (* a1 c2) (* a2 c1))
+      (- (* a1 b2) (* a2 b1)))])
+
+(defn parallel
+  [a b]
+  (= (normalize a) (normalize b)))
+
+(defn line-parallel
+  [{rl :r} {rm :r}]
+  (parallel rl rm))
+
+(defn line-angle
+  [{rl :r} {rm :r}]
+  (angle rl rm))
+
+(defn line-dist
+  "Shortest distance between two lines in space."
+  [{rl :r op :op} {rm :r oq :op}]
+  (let [n (cross rl rm)
+        pq (vector-between op oq)]
+    (/ (Math/abs (dotp n pq))
+       (vlen n))))
+
+(defn line-from-points
+  ([a b] (line-from-points a b "t"))
+  ([a b t]
+     {:op a :r (vector-between a b) :t t}))
+
+(defn line-from-point-dir
+  ([op r] (line-from-point-dir op r "t"))
+  ([op r t]
+     {:op op :r r :t t}))
+
+(defn angle-planes
+  [{na :n} {nb :n}]
+ (let [v (Math/acos (/ (dotp na nb)
+                       (* (vlen na) (vlen nb))))]
+   (Math/toDegrees (min v (- 180 v)))))
+
+(angle-planes (parse "2x+4y-3z+5=0")
+              (parse "-3x+7y-6z+10=0"))
+
