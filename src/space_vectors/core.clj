@@ -20,7 +20,7 @@
   (lwith [this t] "Find a point by specifying the parameter."))
 
 (defprotocol Planes
-  "Protocol for planes of the form ax+by+cz+d=0."
+  "Protocol for planes in space."
   (param [this] "Return the same plane in parameter-form")
   (three-points [this] "Return three points on the plane.")
   (normal [this] "Return the plane as parameters.")
