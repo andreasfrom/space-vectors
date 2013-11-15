@@ -1,8 +1,7 @@
 (ns space-vectors.core
   (:gen-class)
   (:require [instaparse.core :as insta]
-            [numeric.expresso.core :as e]
-            [clojure.repl :refer :all]))
+            [numeric.expresso.core :as e]))
 
 ;;;; Protocols
 
@@ -44,11 +43,39 @@
    :line (fn [op r] (Line. op r))
    :plane (fn [a b c d] (Plane. [a b c] d))
    :pplane (fn [op r1 r2] (PPlane. op r1 r2))
+   :func (fn [f & xs] (apply (resolve (symbol f)) xs))
    :S identity})
 
 (def parser
   (insta/parser
-   "S = vector | line | plane | pplane
+   "S = func
+
+    <elm> = (vector | line | plane | pplane) | expr
+
+    func = vecfunc1 (vector | expr)
+         | vecfunc2 (vector | expr) (vector | expr)
+         | 'lwith' (line | expr) number
+         | planefunc (plane | expr)
+         | 'pwith' (pplane | expr) number number
+         | 'line' (vector | expr) (vector | expr)
+         | 'plane' (vector | expr) (vector | expr) [(vector | expr)]
+         | genfunc elm elm
+
+    <expr> = <lpar> func <rpar>
+
+    <vecfunc1> = 'length' | 'normalize'
+    <vecfunc2> = 'dotp' | 'cross' | 'area' | 'between'
+
+    <planefunc> = 'param' | 'three-points' | 'normal'
+
+    <genfunc> = 'angle' | 'parallel?' | 'perpendicular?' | 'distance' | 'on?' | 'intersection' | 'projection' | 'skewed?'
+
+    vector = [space] [lparen] [space] number space number space number [space] [rparen] [space]
+
+    line = vector [space] [<plus>] [space] [<word>] [space] [<mult>] vector
+
+
+
     plane = number [[space] [<mult>] [space] <'x'>] [space]
             number [[space] [<mult>] [space] <'y'>] [space]
             number [[space] [<mult>] [space] <'z'>] [space]
@@ -60,26 +87,22 @@
              [<word>] [space] [<mult>] [space]
              vector
 
-    line = vector [space] [<plus>] [space] [<word>] [space] [<mult>] vector
-
     <word> = #'[a-z]'+
-
-    vector = [space] [lparen] [space] number space number space number [space] [rparen] [space]
 
     <plus> = '+'
     <mult> = '*'
+    <lpar> = [space] '(' [space]
+    <rpar> = [space] ')' [space]
     <lparen> = <'('> | <'<'> | <'['>
     <rparen> = <')'> | <'>'> | <']'>
     number = ('+' | '-' | [space]) #'[0-9]'+ ['.' #'[0-9]'+]
     <space> = (<#'[ ]+'> | <','>)+"))
 
 (defn parse
-  "Parses the input into Clojure data, but only if it is a string."
+  "Parse the input and execute the functions."
   [input]
-  (if (string? input)
-    (->> (parser input)
-         (insta/transform transform-options))
-    input))
+  (->> (parser input)
+       (insta/transform transform-options)))
 
 ;;;; Implementations
 ;;; Vector
@@ -100,25 +123,14 @@
   (area [a b]
     (length (cross a b)))
   (between [a b]
-    (mapv - b a))
-
-  java.lang.String
-  (length [this] (length (parse this)))
-  (normalize [this] (normalize (parse this)))
-  (dotp [a b] (dotp (parse a) (parse b)))
-  (cross [a b] (cross (parse a) (parse b)))
-  (area [a b] (area (parse a) (parse b)))
-  (between [a b] (between (parse a) (parse b))))
+    (mapv - b a)))
 
 ;;; Line
 
 (extend-protocol Lines
   Line
   (lwith [{:keys [op r]} t]
-    (mapv + op (map (partial * t) r)))
-
-  java.lang.String
-  (lwith [this t] (lwith (parse this) t)))
+    (mapv + op (map (partial * t) r))))
 
 ;;; Plane & PPlane
 
@@ -145,13 +157,7 @@
   (three-points [this]
     (three-points (normal this)))
   (pwith [{:keys [op r1 r2]} s t]
-    (mapv + op (map (partial * s) r1) (map (partial * t) r2)))
-
-  java.lang.String
-  (normal [this] (normal (parse this)))
-  (param [this] (param (parse this)))
-  (three-points [this] (three-points (parse this)))
-  (pwith [this & vars] (apply pwith (parse this) vars)))
+    (mapv + op (map (partial * s) r1) (map (partial * t) r2))))
 
 ;;;; Printing
 
@@ -162,6 +168,10 @@
     (str "+" n)))
 
 (extend-protocol Printing
+  java.lang.Long
+  (mathy [this] this)
+  java.lang.Double
+  (mathy [this this])
   clojure.lang.PersistentVector
   (mathy [this]
     (str "(" (apply str (interpose "," this)) ")"))
@@ -180,20 +190,19 @@
 (defn line
   "Takes two points and returns a line through them."
   [a b]
-  (Line. (parse a) (between (parse a) (parse b))))
+  (Line. a (between a b)))
 
 (defn plane
   "Returns a normal-plane from a normal vector and a point
    or
    a plane in parameter form from three points."
   ([n p]
-     (Plane. (parse n) (reduce - 0 (map * (parse p) (parse n)))))
+     (Plane. n (reduce - 0 (map * p n))))
   ([A B C]
-     (let [[A B C] (map parse [A B C])]
-       (let [op A
-             r1 (between A B)
-             r2 (between A C)]
-         (PPlane. op r1 r2)))))
+     (let [op A
+           r1 (between A B)
+           r2 (between A C)]
+       (PPlane. op r1 r2))))
 
 ;;;; Multimethods
 
@@ -412,8 +421,6 @@
 ;;;; Repl
 
 (defn -main
-  "The main entry point, delegates to REPL-y."
   [& args]
-  (require 'reply.main)
-  ((ns-resolve 'reply.main 'launch)
-   {:custom-eval '(do (println "\n\nWelcome to the Space Vectors application.\n\nStart by running \"(ns space-vectors.core)\"!.\n\nExample command: (distance \"(1,2,3)\" \"2x-4y+1z-5=0\")\nDocumentation is available through doc: (doc dotp)"))}))
+  (println "ready")
+  (println (parse "length 1 2 3")))
