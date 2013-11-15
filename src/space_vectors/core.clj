@@ -40,14 +40,14 @@
 
     vector = [space] [lparen] [space] number space number space number [space] [rparen] [space]
 
-    line = vector [space] [<plus>] [space] [<word>] [space] [<mult>] vector
+    line = [space] vector [space] [<plus>] [space] [<word>] [space] [<mult>] vector
 
-    plane = number [[space] [<mult>] [space] <'x'>] [space]
+    plane = [space] number [[space] [<mult>] [space] <'x'>] [space]
             number [[space] [<mult>] [space] <'y'>] [space]
             number [[space] [<mult>] [space] <'z'>] [space]
             number [[space]  <'='>   [space] <'0'>]
 
-    pplane = vector   [space] [<plus>] [space]
+    pplane = [space] vector   [space] [<plus>] [space]
              [<word>] [space] [<mult>] [space]
              vector   [space] [<plus>] [space]
              [<word>] [space] [<mult>] [space]
@@ -62,7 +62,7 @@
     <lparen> = <'('> | <'<'> | <'['>
     <rparen> = <')'> | <'>'> | <']'>
     <c> = [space] ',' [space]
-    number = ('+' | '-' | [space]) #'[0-9]+' ['.' #'[0-9]+']
+    number = ('+' | '-' | '') [space] #'[0-9]+' ['.' #'[0-9]+']
     <space> = (<#'[ ]+'> | <','>)+"))
 
 (defn parse
