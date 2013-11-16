@@ -4,7 +4,7 @@ A collection of functions and a parser bundled with a repl to
 enable faster calculations on vectors, lines and planes in space.
 
 ## Sample session
-[Using the Space Vectors command line](spacevectorssample.png)
+![Using the Space Vectors command line](spacevectorssample.png)
 
 ## Supported functions
 ### Vectors
