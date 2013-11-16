@@ -3,6 +3,9 @@
 A collection of functions and a parser bundled with a repl to
 enable faster calculations on vectors, lines and planes in space.
 
+## Sample session
+[Using the Space Vectors command line](spacevectorssample.png)
+
 ## Supported functions
 ### Vectors
 * Length `length a`
@@ -72,14 +75,13 @@ One can nest functions by wrapping them in parenthesis: `dotp 1 2 3, (cross 1 2 
 ## Binaries
 It's a java jar file so you need to run it from the command prompt like so: `java -jar space-vectors.jar` (this is a nightmare on Windows, google it).
 
-[space-vectors.jar](https://www.dropbox.com/s/veccl7weilg575u/space-vectors-0.1.0-SNAPSHOT-standalone.jar)
+[space-vectors.jar](https://www.dropbox.com/s/mv1838sht00cs0f/space-vectors-0.2.0-standalone.jar)
 
 I recommend wrapping the binary in [rlwrap](http://utopia.knoware.nl/~hlub/rlwrap/) on Mac and Linux to get history in the REPL.
 I will be developing a browser-frontend later for easier use though.
 
 ## Thanks
-Thanks to [Instaparse](https://github.com/Engelberg/instaparse) and [Expresso](https://github.com/clojure-numerics/expresso) for making it easy to parse user-input and solve equations respectively.
-And for extensive documentation!
+Thanks to [Instaparse](https://github.com/Engelberg/instaparse) for the extensive documentation and the excellent library for parsing user input.
 
 ## License
 

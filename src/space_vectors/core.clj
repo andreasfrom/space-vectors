@@ -1,9 +1,11 @@
 (ns space-vectors.core
   (:gen-class)
-  (:require [instaparse.core :as insta]
-            [numeric.expresso.core :as e]))
+  (:require [instaparse.core :as insta]))
 
 ;;;; Parsing
+
+(declare normal)
+(defn pplane->plane [a] (if (= (:type a) :pplane) (normal a) a))
 
 (def transform-options
   {:number (fn [& ns] (read-string (apply str ns)))
@@ -11,7 +13,8 @@
    :line (fn [op r] {:type :line :op op :r r})
    :plane (fn [a b c d] {:type :plane :n {:type :vector :comps [a b c]} :d d})
    :pplane (fn [op r1 r2] {:type :pplane :op op :r1 r1 :r2 r2})
-   :func (fn [f & xs] (apply (ns-resolve 'space-vectors.core (symbol f)) (sort-by :type xs)))
+   :func (fn [f & xs] (apply (ns-resolve 'space-vectors.core (symbol f))
+                             (->> xs (map pplane->plane) (sort-by :type))))
    :S identity})
 
 (def parser
@@ -135,10 +138,12 @@
 
 (defn normal
   "Return the same plane as a normal vector and a point."
-  [{:keys [op r1 r2]}]
-  (let [n (cross r1 r2)
-        d (reduce - 0 (map * (:comps op) (:comps n)))]
-    {:type :plane :n n :d d}))
+  [{:keys [op r1 r2 type] :as a}]
+  (if (= type :pplane)
+    (let [n (cross r1 r2)
+          d (reduce - 0 (map * (:comps op) (:comps n)))]
+      {:type :plane :n n :d d})
+    a))
 
 (defn pwith
   "Return a point on the plane by specifying the two parameters."
@@ -293,20 +298,15 @@
   "Returns the intersection point or line between two elements."
   types)
 
-(defn- line=line
-  "Equal two lines yielding their [x y z] equations."
-  [{{ap :comps} :op {ar :comps} :r} {{bp :comps} :op {br :comps} :r}]
-  (let [[apx apy apz] ap [arx ary arz] ar
-        [bpx bpy bpz] bp [brx bry brz] br]
-    [(e/ex' (= (+ apx (* arx 't)) (+ bpx (* brx 's))))
-     (e/ex' (= (+ apy (* ary 't)) (+ bpy (* bry 's))))
-     (e/ex' (= (+ apz (* arz 't)) (+ bpz (* brz 's))))]))
-
 (defmethod intersection [:line :line]
-  [l m]
-  (let [sol (first (apply e/solve '[t s] (line=line l m)))]
-    (when (seq sol)
-     (lwith ('t sol) l))))
+  [{ap :op ar :r :as a} {bp :op br :r}]
+  (let [lv3 (between ap bp)
+        cab (cross ar br)
+        c3b (cross lv3 br)
+        planar-factor (dotp lv3 cab)]
+    (when (= 0 planar-factor)
+      (let [s (/ (dotp c3b cab) (reduce + (map #(* % %) (:comps cab))))]
+        (lwith s a)))))
 
 (defmethod intersection [:plane :plane]
   [{{[a1 b1 c1] :comps} :n d1 :d} {{[a2 b2 c2] :comps} :n d2 :d}]
@@ -321,13 +321,14 @@
 (defmethod intersection [:line :plane]
   [{{[opx opy opz] :comps} :op {[rx ry rz] :comps} :r :as l}
    {{[a b c] :comps} :n d :d}]
-  (let [texp (e/ex' (= 0 (+ (* a (+ opx (* rx 't)))
-                            (* b (+ opy (* ry 't)))
-                            (* c (+ opz (* rz 't)))
-                            d)))
-        t' (first (e/solve 't texp))]
-    (when t'
-      (lwith t' l))))
+  (let [t (/ (- (+ (* a opx) (* b opy) (* c opz) d))
+             (+ (* a rx) (* b ry) (* c rz)))]
+    (lwith t l)))
+
+(defn custom-intersection-line-plane
+  [{{[opx opy opz] :comps} :op {[rx ry rz] :comps} :r :as l}
+   {{[a b c] :comps} :n d :d}]
+  )
 
 (defmethod intersection :default
   [& args]
@@ -370,12 +371,12 @@
     (str "+" n)))
 
 (defmulti mathy
-  "Protocol for pretty-printing math."
+  "Pretty-print math."
   :type)
 
 (defmethod mathy :vector
   [{v :comps}]
-  (str "(" (apply str (interpose "," v)) ")"))
+  (str "(" (apply str (interpose "," (map double v))) ")"))
 
 (defmethod mathy :line
   [{:keys [op r]}]
@@ -399,7 +400,7 @@
     (print "> ") (flush)
     (let [input (read-line)
           output (try (parse input)
-                      (catch Exception e
-                        (str "Wrong input: " (.getMessage e))))]
-      (println (mathy output))
-      (when-not (contains? #{"quit" "exit"} input) (recur)))))
+                      (catch Exception e (str "Wrong input: " (.getMessage e))))]
+      (when-not (contains? #{"quit" "exit"} input)
+          (println (mathy output))
+          (recur)))))
