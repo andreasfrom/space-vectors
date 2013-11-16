@@ -16,13 +16,18 @@ enable faster calculations on vectors, lines and planes in space.
 * Vector between two points (position vectors) `between a, b`
 
 ### Lines
-* Specify the parameter to get a point on the line `line l, t`
+* Specify the parameter to get a point on the line `lwith l, t`
 
 ### Planes
 * Turn a plane of the form `ax+by+cz+d=0` into `(x,y,z) = op+t*r1+s*r2`: `param a`
 * Go the other way: `normal a`
 * Return three points on a normal-plane `three-points a` 
 * Get a point by specifying two parameters `pwith a, t, s`
+
+### Helpers
+* Turn two points into a line: `line a, b`
+* Get a normal-plane from a vector and a point: `plane n, p`
+* Get a parameter-plane from three point: `plane a, b, c`
 
 ### Functions between elements
 * Angle: `angle x, y`, `parallel? x, y` and `perpendicular? x, y`
