@@ -1,6 +1,8 @@
 (ns space-vectors.core
   (:gen-class)
-  (:require [instaparse.core :as insta]))
+  (:require [instaparse.core :as insta])
+  (:import (java.text NumberFormat)
+           (java.util Locale)))
 
 ;;;; Types
 (defn as-vec [v] {:type :vector :comps v})
@@ -71,7 +73,8 @@
     <lparen> = <'('> | <'<'> | <'['>
     <rparen> = <')'> | <'>'> | <']'>
     <c> = [space] ',' [space]
-    number = ('+' | '-' | '') [space] #'[0-9]+' ['.' #'[0-9]+']
+    number = ('+' | '-' | '') [space] num [('.' | '/') num]
+    <num> = #'[0-9]+'
     <space> = (<#'[ ]+'> | <','>)+"))
 
 (defn parse
@@ -373,19 +376,19 @@
 
 (defmulti mathy
   "Pretty-print math."
-  :type)
+  #(get % :type (type %)))
 
-(defn- format-number
+(defmethod mathy java.lang.Double
   [n]
-  (if (ratio? n)
-    (format "%.3f" (double n))
-    (if (= (type n) java.lang.Double)
-      (format "%.3f" n)
-      n)))
+  (.format (NumberFormat/getInstance (Locale/US)) n))
+
+(defmethod mathy clojure.lang.Ratio
+  [n]
+  (mathy (double n)))
 
 (defmethod mathy :vector
   [{v :comps}]
-  (str "(" (apply str (interpose ", " (map format-number v))) ")"))
+  (str "(" (apply str (interpose ", " (map mathy v))) ")"))
 
 (defmethod mathy :line
   [{:keys [op r]}]
@@ -399,7 +402,7 @@
   [{:keys [op r1 r2]}]
   (str (mathy op) " + s *" (mathy r1) " + t * " (mathy r2)))
 
-(defmethod mathy :default [x] x)
+(defmethod mathy :default [x] (str x))
 
 ;;;; Repl
 
