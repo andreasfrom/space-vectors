@@ -1,10 +1,11 @@
 # Space Vectors
 
-A collection of functions and a parser bundled with a repl to
-enable faster calculations on vectors, lines and planes in space.
+A collection of functions and a parser bundled with a GUI to enable faster calculations on vectors, lines and planes in space.
 
 ## Sample session
 ![Using the Space Vectors command line](spacevectorssample.png)
+
+(Picture of the GUI is underway)
 
 ## Supported functions
 ### Vectors
@@ -37,34 +38,28 @@ enable faster calculations on vectors, lines and planes in space.
 * Are two lines skewed? `skewed? l, m`
 
 ## Syntax
-Braces, "(), "<>" and "[]" are optional and comma is considered whitespace except for in between function arguments.
-
 ### Vectors
 All of the following is legal for a vector `(-2,1,3)`
 * `(-2,1,3)`
 * `(-2, 1, 3)`
 * `(-2 1 3)`
-* `<-2, 1, 3>`
-* `[-2 1 3]`
 * `-2 1 3`
 * `-2,1 3`
 
-If there are three numbers, optionally surrounded by "()", "<>" or "[]", it's interpreted as a vector.
+If there are three numbers, optionally surrounded by "()" and interposed with ",", it's interpreted as a vector.
 
 ### Lines
 Lines consist of a positional vector, an optional parameter (it's ignored) and a directional vector.
 * `(-2,1,3) + t * (1,2,3)`
-* `<-2 1 3> 1 2 3`
+* `(-2, 1, 3) 1, 2, 3`
 * `-2 1 3 1 2 3`
-
-The syntax is very forgiving.
 
 ### Planes
 * `1x+2y+3z-4=0`
 * `1 2 3 -4`
 
 ### PPlanes
-* `(0,0,0) + t * (1,2,3) + s * <-2 9 17>`
+* `(0,0,0) + t * (1,2,3) s -2 9 17`
 * `0 0 0 1 2 3 -2 9 17`
 
 ### Commands
@@ -72,18 +67,15 @@ Commands consist of one of the above functions and then the arguments separated 
 One can nest functions by wrapping them in parenthesis: `dotp 1 2 3, (cross 1 2 -4, 0 4 1)`.
 
 ### Example commands
-
 * Distance between two points: `distance (1,2,3), (0,-2,3)`
-* Dot product of a point and the cross product of two other: `dotp 0 -2 4, (cross 0 4 1, [1 2 4])`
+* Dot product of a point and the cross product of two other: `dotp 0 -2 4, (cross 0 4 1, (1, 2, 4))`
 * Intersection of two planes: `intersection -2x+2y-3z+0=0, 4 -2 1 4`
 
 ## Binaries
-It's a java jar file so you need to run it from the command prompt like so: `java -jar space-vectors.jar` (this is a nightmare on Windows, google it).
+As of 1.0.0-BETA there's now a GUI.
+Just download and double-click the jar-file.
 
-[space-vectors.jar](https://www.dropbox.com/s/drmivqmlv75x9g6/space-vectors-0.3.0-standalone.jar)
-
-I recommend wrapping the binary in [rlwrap](http://utopia.knoware.nl/~hlub/rlwrap/) on Mac and Linux to get history in the REPL.
-I will be developing a browser-frontend later for easier use though.
+[space-vectors.jar](https://www.dropbox.com/s/u1ce92enajqmkel/space-vectors-1.0.0-BETA-standalone.jar)
 
 ## Thanks
 Thanks to [Instaparse](https://github.com/Engelberg/instaparse) for the extensive documentation and the excellent library for parsing user input.
