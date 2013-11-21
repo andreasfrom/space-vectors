@@ -3,9 +3,7 @@
 A collection of functions and a parser bundled with a GUI to enable faster calculations on vectors, lines and planes in space.
 
 ## Sample session
-![Using the Space Vectors command line](spacevectorssample.png)
-
-(Picture of the GUI is underway)
+![Using the Space Vectors GUI](spacevectorssamplegui.png)
 
 ## Supported functions
 ### Vectors
