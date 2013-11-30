@@ -1,0 +1,26 @@
+> l = line (1, 2, -3), (4, -2, 8)
+(1, 2, -3) + t * (3, -4, 11)
+> m = line (8, -2, 2), (4, 4, 6)
+(8, -2, 2) + t * (-4, 6, 4)
+> skewed? l, m
+true
+> angle l, m
+85.395
+> distance l, m
+3.423
+> angle l, 0x+0y+1z+0=0
+65.556
+> distance (1, 2, 4), m
+4.007
+> alpha = plane (5, 5, -3), (-2, 8, 4), (-2, -5, 5)
+(5, 5, -3) + s * (-7, 3, 7) + t * (-7, -10, 8)
+> beta = plane (5, -3, 2), (-2, -7, 0)
+5x-3y+2z-11=0
+> normal a
+(2, 4, 0)
+> normal alpha
+94x+7y+91z-232=0
+> angle alpha, beta
+38.623
+> intersection alpha, beta
+(0, -1.871, 2.693) + t * (1, 0.93, -1.105)
