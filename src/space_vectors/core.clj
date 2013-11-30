@@ -1,6 +1,7 @@
 (ns space-vectors.core
   (:require [instaparse.core :as insta]
-            [instaparse.failure :refer [pprint-failure]])
+            [instaparse.failure :refer [pprint-failure]]
+            [clojure.repl :refer [doc]])
   (:import (java.text NumberFormat)
            (java.util Locale)))
 
@@ -13,6 +14,9 @@
   (get x :type (condp = (type x)
                  clojure.lang.PersistentVector :vector
                  clojure.lang.Keyword x
+                 java.lang.Long :number-long
+                 java.lang.Double :number-double
+                 clojure.lang.Ratio :number-ratio
                  (type x))))
 
 (defn as-line [op r] {:type :line :op op :r r})
@@ -31,11 +35,11 @@
   "Pretty-print math."
   space-type)
 
-(defmethod mathy java.lang.Double
+(defmethod mathy :number-double
   [n]
   (.format (NumberFormat/getInstance (Locale/US)) n))
 
-(defmethod mathy clojure.lang.Ratio
+(defmethod mathy :number-ratio
   [n]
   (mathy (double n)))
 
@@ -68,55 +72,68 @@
 (defn pplane->plane [a] (if (= (:type a) :pplane) (normal a) a))
 
 (def transform-basics
-  {:number (fn [& ns] (read-string (apply str ns)))
+  {:number (fn [n & ns] (read-string (apply str n ns)))
    :vector (fn [& es] (apply vector es))
    :line (fn [op r] (as-line op r))
    :plane (fn [a b c d] (as-plane [a b c] d))
    :pplane (fn [op r1 r2] (as-pplane op r1 r2))
    :word (partial apply str)
+   :sign (fn ([] 1) ([sign] (if (= sign "+") 1 -1)))
+   :one (constantly 1)
    :nested identity
-   :elm identity
    :S identity})
 
 (def transform-func
   (merge transform-basics
-         {:func (fn [f & xs] (try (apply (ns-resolve 'space-vectors.core (symbol f))
+         {:function (fn [f & xs] (try (apply (ns-resolve 'space-vectors.core (symbol f))
                                          (->> xs (map pplane->plane) (sort-by space-type)))
                                   (catch Exception e (.getMessage e))))
           :def (fn [name elm] (do (swap! user-vars assoc name elm) (mathy elm)))
           :var (fn [name] (if (contains? @user-vars name)
                             (get @user-vars name)
-                            (throw (Exception. (str name " not found.")))))}))
+                            (throw (Exception. (str name " not found.\nDid you mean any of: "
+                                                    (apply str (interpose ", " (keys @user-vars))))))))}))
 
 (declare mathy)
 
 (def transform-print
   (merge transform-basics
-         {:func (fn [f & xs] (apply str f " " (interpose ", " (map mathy xs))))
+         {:function (fn [f & xs] (apply str f " " (interpose ", " (map mathy xs))))
           :nested (fn [f] (str "(" f ")"))
           :def (fn [name elm] (str name " = " (mathy elm)))
           :var (fn [name] (str name))
-          :elm mathy}))
+          :S mathy}))
 
 (def parser
-  (insta/parser ;; TODO: continue cleanup...
-   "S = var | def | elm | func
+  (insta/parser
+   "S = var | def | elm | function
 
     var = word
-    def = word [space] <'='> [space] (elm | func | number)
-    elm = (vector | line | plane | pplane) | var | nested
+    def = word [space] <'='> [space] (elm | function | number)
+    <elm> = vector | line | plane | pplane
+    <elmarg> = elm | nested | var
 
-    func = function args
-    <function> = 'length' | 'normalize' | 'dotp' | 'cross' | 'area' | 'between'
-               | 'param' | 'three-points' | 'normal'  | 'line' | 'plane'
-               | 'angle' | 'parallel?' | 'perpendicular?' | 'distance' | 'on?' | 'intersection' | 'projection' | 'skewed?'
-    <args> = [space] elm (<','> [space] elm)* [space]
-    nested = <lparen> func <rparen>
+    function = (('length' | 'normalize') space vecarg)
+             | (('dotp' | 'cross' | 'area' | 'between') space vecarg c vecarg)
+             | (('param' space planearg) | ('normal' space pplanearg) | ('three-points' space (planearg | pplanearg)))
+             | (('line' space vecarg c vecarg) | ('plane' space vecarg c vecarg [c vecarg]))
+             | (('lwith' space linearg c numarg) | ('pwith' space pplanearg c numarg c number))
+             | (('angle' | 'parallel?' | 'perpendicular?' | 'distance' | 'on?' | 'intersection' [space elmarg c] | 'projection' | 'skewed?') space elmarg c elmarg)
 
-    vector = [lparen] number (<c> | space) number (<c> | space) number [rparen]
+    nested = <lparen> function <rparen>
+
+    vector = [lparen] numarg (c | space) numarg (c | space) numarg [rparen]
+    <vecarg> = vector | nested | var
     line = vector [param] vector
-    plane = number [[<mult>] <'x'>] number [[<mult>] <'y'>] number [[<mult>] <'z'>] number [<'='> [space] <'0'>]
+    <linearg> = line | nested | var
+    plane = (([sign] | one) <'x'> | number | number [<mult>] <'x'>) [space]
+            (([sign] | one) <'y'> | number | number [<mult>] <'y'>) [space]
+            (([sign] | one) <'z'> | number | number [<mult>] <'z'>) [space] number [<'='> [space] <'0'>]
+    one = ''
+    <planearg> = plane | nested | var
+    sign = '+' | '-'
     pplane = vector [param] vector [param] vector
+    <pplanearg> = pplane | nested | var
 
     word = #'[a-zA-Z]'+
 
@@ -125,9 +142,10 @@
     <mult> = [space] '*' [space]
     <lparen> = [space] <'('> [space]
     <rparen> = [space] <')'> [space]
-    <c> = [space] ',' [space]
-    number = [space] ('+' | '-' | '') [space] num [('.' | '/') num] [space]
+    <c> = [space] <','> [space]
+    number = [space] ('+' | '-' | '') [space] (num [('.' | '/') num]) [space]
     <num> = #'[0-9]+'
+    <numarg> = number | var
     <space> = <#'[ ]+'>"))
 
 (defn parse
@@ -179,7 +197,7 @@
 
 (defn lwith
   "Find a point by specifying the parameter of the line."
-  [t {:keys [op r]}]
+  [{:keys [op r]} t]
   (mapv + op (map (partial * t) r)))
 
 ;;; Planes & PPlanes
@@ -210,9 +228,11 @@
     a))
 
 (defn pwith
-  "Return a point on the plane by specifying the two parameters."
-  [s t {:keys [op r1 r2]}]
-  (mapv + op (map (partial * s) :r1) (map (partial * t) r2)))
+  "Return a point on the plane by specifying the two parameters.
+   Takes a normal-plane."
+  [s t a]
+  (let [{:keys [op r1 r2]} (param a)]
+    (mapv + op (map (partial * s) r1) (map (partial * t) r2))))
 
 ;;;; Helpers
 
@@ -369,8 +389,17 @@
         planar-factor (dotp lv3 cab)]
     (if (= 0 planar-factor)
       (let [s (/ (dotp c3b cab) (reduce + (map #(* % %) cab)))]
-        (lwith s a))
+        (lwith a s))
       (throw (Exception. "No intersection")))))
+
+(defmethod intersection [:line :plane]
+  [{[opx opy opz] :op [rx ry rz] :r :as l}
+   {[a b c] :n d :d :as alpha}]
+  (if-not (parallel? l alpha)
+    (let [t (/ (- (+ (* a opx) (* b opy) (* c opz) d))
+               (+ (* a rx) (* b ry) (* c rz)))]
+      (lwith l t))
+    (throw (Exception. "No intersection"))))
 
 (defmethod intersection [:plane :plane]
   [{[a1 b1 c1] :n d1 :d :as alpha} {[a2 b2 c2] :n d2 :d :as beta}]
@@ -384,14 +413,9 @@
         (as-line op r))
       (throw (Exception. "No intersection"))))
 
-(defmethod intersection [:line :plane]
-  [{[opx opy opz] :op [rx ry rz] :r :as l}
-   {[a b c] :n d :d :as alpha}]
-  (if-not (parallel? l alpha)
-    (let [t (/ (- (+ (* a opx) (* b opy) (* c opz) d))
-               (+ (* a rx) (* b ry) (* c rz)))]
-      (lwith t l))
-    (throw (Exception. "No intersection"))))
+(defmethod intersection [:plane :plane :plane]
+  [a b c]
+  (intersection (intersection a b) c))
 
 (defmethod intersection :default
   [& args]
@@ -405,7 +429,7 @@
 
 (defmethod projection [:vector :vector]
   [a b]
-  (mapv (partial * (/ (dotp a b) (Math/pow (length b) 2))) :b))
+  (mapv (partial * (/ (dotp a b) (Math/pow (length b) 2))) b))
 
 (defmethod projection [:line :plane]
   [{r :r :as l} {n :n :as a}]

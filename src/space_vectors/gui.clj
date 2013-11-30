@@ -1,7 +1,8 @@
 (ns space-vectors.gui
   (:gen-class)
   (:require [space-vectors.core :refer [parse]]
-            [seesaw.core :refer [text text! scrollable listen frame native! invoke-later pack! show! border-panel]]))
+            [seesaw.core :refer [text text! scrollable listen frame native! invoke-later pack! show! border-panel]]
+            [seesaw.font :refer [font]]))
 
 (def !history (atom ()))
 (def !index (atom 0))
@@ -11,7 +12,7 @@
 (def down-arrow 40)
 
 (def user-input (text))
-(def output-box (text :multi-line? true :editable? false))
+(def output-box (text :multi-line? true :editable? false :font :monospaced)) ;; TODO: Monospaced font
 (def output-scroll (scrollable output-box))
 
 (listen user-input

@@ -73,7 +73,7 @@ One can nest functions by wrapping them in parenthesis: `dotp 1 2 3, (cross 1 2 
 As of 1.0.0-BETA there's now a GUI.
 Just download and double-click the jar-file.
 
-[space-vectors.jar](https://www.dropbox.com/s/u1ce92enajqmkel/space-vectors-1.0.0-BETA-standalone.jar)
+[space-vectors.jar](https://www.dropbox.com/s/gyxdoi863iq78pl/space-vectors-1.0.0-standalone.jar)
 
 ## Thanks
 Thanks to [Instaparse](https://github.com/Engelberg/instaparse) for the extensive documentation and the excellent library for parsing user input.
