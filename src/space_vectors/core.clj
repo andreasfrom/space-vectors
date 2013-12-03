@@ -294,8 +294,8 @@
 
 (defmethod angle [:plane :plane]
   [{na :n} {nb :n}]
-  (let [v (Math/acos (/ (dotp na nb) (* (length na) (length nb))))]
-    (Math/toDegrees (min v (- 180 v)))))
+  (let [v (Math/toDegrees (Math/acos (/ (dotp na nb) (* (length na) (length nb)))))]
+    (min v (- 180 v))))
 
 (defmethod angle [:line :plane]
   [{r :r} a]

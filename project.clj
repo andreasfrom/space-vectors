@@ -1,4 +1,4 @@
-(defproject space-vectors "1.0.0"
+(defproject space-vectors "1.0.1"
   :description "Repl for fast calculations on vectors, lines and planes in space."
   :url "https://github.com/andreasfrom"
   :license {:name "Eclipse Public License"
