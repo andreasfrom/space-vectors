@@ -73,13 +73,13 @@ One can nest functions by wrapping them in parenthesis: `dotp 1 2 3, (cross 1 2 
 As of 1.0.0-BETA there's now a GUI.
 Just download and double-click the jar-file.
 
-[space-vectors.jar](https://www.dropbox.com/s/gyxdoi863iq78pl/space-vectors-1.0.0-standalone.jar)
+[space-vectors.jar](https://www.dropbox.com/s/epw32obqnkh3uvi/space-vectors-1.0.1-standalone.jar)
 
 ## Thanks
 Thanks to [Instaparse](https://github.com/Engelberg/instaparse) for the extensive documentation and the excellent library for parsing user input.
 
 ## License
 
-Copyright © 2013 Andreas From
+Copyright © 2013-2014 Andreas From
 
 Distributed under the Eclipse Public License, the same as Clojure.
